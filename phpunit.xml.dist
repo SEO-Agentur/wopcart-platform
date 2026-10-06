@@ -1,0 +1,30 @@
+<?xml version="1.0"?>
+<phpunit
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:noNamespaceSchemaLocation="https://schema.phpunit.de/10.5/phpunit.xsd"
+	bootstrap="tests/bootstrap/bootstrap.php"
+	colors="true"
+	beStrictAboutOutputDuringTests="true"
+	failOnWarning="true"
+	failOnNotice="true"
+	cacheDirectory=".phpunit.cache">
+
+	<testsuites>
+		<!--
+			Unit only, on the same terms as the core plugin's suite: what is worth
+			testing without WordPress loaded is the proxy's allowlist and fee
+			arithmetic, the plan server's lookup parity, and the Connect server's URL
+			validation. Anything that needs a real $wpdb or a real HTTP call belongs
+			in an integration suite against a WordPress test install.
+		-->
+		<testsuite name="unit">
+			<directory suffix="Test.php">tests/Unit</directory>
+		</testsuite>
+	</testsuites>
+
+	<source>
+		<include>
+			<directory suffix=".php">src</directory>
+		</include>
+	</source>
+</phpunit>

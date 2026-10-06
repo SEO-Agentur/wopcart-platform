@@ -1,0 +1,27 @@
+# Dependencies
+/vendor/
+/node_modules/
+
+# Test and lint artefacts
+/.phpunit.cache/
+.phpunit.result.cache
+/coverage/
+
+# Build output
+/dist/
+*.zip
+
+# Editor and OS noise
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.sublime-project
+*.sublime-workspace
+
+# Local overrides
+/.env
+/.env.local
+
+# Local tooling
+/.claude/

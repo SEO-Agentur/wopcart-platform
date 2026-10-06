@@ -1,0 +1,30 @@
+{
+	"name": "cyrusbadde/wopcart-platform",
+	"description": "The wopcart.com server side of WopCart: plan verification, Stripe Connect onboarding, the payment proxy and the event relay.",
+	"type": "wordpress-plugin",
+	"license": "GPL-2.0-or-later",
+	"homepage": "https://wopcart.com",
+	"require": {
+		"php": ">=8.2"
+	},
+	"require-dev": {
+		"squizlabs/php_codesniffer": "^3.9",
+		"wp-coding-standards/wpcs": "^3.1",
+		"phpcompatibility/phpcompatibility-wp": "^2.1",
+		"dealerdirect/phpcodesniffer-composer-installer": "^1.0",
+		"yoast/phpunit-polyfills": "^2.0",
+		"phpunit/phpunit": "^10.5"
+	},
+	"scripts": {
+		"lint": "@php -r \"foreach (new RecursiveIteratorIterator(new RecursiveDirectoryIterator('.')) as $f) { if ($f->getExtension() === 'php' && !str_contains($f->getPathname(), '/vendor/')) { exec('php -l ' . escapeshellarg($f->getPathname()), $o, $c); if ($c !== 0) { echo implode(PHP_EOL, $o), PHP_EOL; exit(1); } } } echo 'OK', PHP_EOL;\"",
+		"phpcs": "phpcs",
+		"phpcbf": "phpcbf",
+		"test": "phpunit"
+	},
+	"config": {
+		"allow-plugins": {
+			"dealerdirect/phpcodesniffer-composer-installer": true
+		}
+	},
+	"_comment": "Composer is a development convenience only. The plugin ships with its own PSR-4 autoloader in src/Autoloader.php and has no runtime dependencies beyond the core WopCart plugin. Without a vendor/ directory of its own, run the core plugin's: ../digital-cart/vendor/bin/phpunit and ../digital-cart/vendor/bin/phpcs."
+}
