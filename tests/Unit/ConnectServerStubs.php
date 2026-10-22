@@ -35,3 +35,16 @@ if ( ! function_exists( 'wp_schedule_single_event' ) ) {
 		return true;
 	}
 }
+
+if ( ! function_exists( 'wp_json_encode' ) ) {
+	/**
+	 * WordPress's JSON encoder, as much of it as these tests need.
+	 *
+	 * @param mixed $data Value to encode.
+	 *
+	 * @return string|false
+	 */
+	function wp_json_encode( mixed $data ): string|false {
+		return json_encode( $data ); // phpcs:ignore WordPress.WP.AlternativeFunctions.json_encode_json_encode -- This is the stub for it.
+	}
+}

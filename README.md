@@ -136,6 +136,18 @@ cd wopcart-platform
 
 ## Changelog
 
+### 1.0.3
+
+* **Fixed: a rejected attempt locked a site out of connecting for 24 hours.** The
+  idempotency key for creating a connected account was hashed from the site alone.
+  Stripe stores the outcome of the first request under a key — refusals included —
+  and answers any later request carrying it with *"keys for idempotent requests can
+  only be used with the same parameters they were first used with"*. So once the
+  Express-dashboard refusal of 1.0.0 had been stored, even the fixed parameters of
+  1.0.2 were met with that stored refusal. The key now hashes the parameters too:
+  identical parameters still return the account Stripe already created, changed
+  parameters get a fresh attempt.
+
 ### 1.0.2
 
 * **Fixed: activating this plugin next to an older WopCart took the whole site

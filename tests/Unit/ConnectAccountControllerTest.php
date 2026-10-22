@@ -62,4 +62,43 @@ final class ConnectAccountControllerTest extends TestCase {
 		$this->assertSame( 'application', $controller['fees']['payer'] );
 		$this->assertSame( 'application', $controller['losses']['payments'] );
 	}
+
+	/**
+	 * The same parameters keep the same key, so a timeout retry does not create a
+	 * second account.
+	 */
+	public function test_identical_parameters_reuse_the_key(): void {
+		$args = array( 'country' => 'US', 'controller' => ConnectServer::account_controller() );
+
+		$this->assertSame(
+			ConnectServer::account_idempotency_key( 'shop.example.com', $args ),
+			ConnectServer::account_idempotency_key( 'shop.example.com', $args )
+		);
+	}
+
+	/**
+	 * Changed parameters change the key, so a refusal Stripe stored for 24 hours
+	 * cannot lock a site out of retrying once the parameters are fixed.
+	 */
+	public function test_changed_parameters_change_the_key(): void {
+		$before = array( 'country' => 'US', 'controller' => array( 'stripe_dashboard' => array( 'type' => 'express' ) ) );
+		$after  = array( 'country' => 'US', 'controller' => ConnectServer::account_controller() );
+
+		$this->assertNotSame(
+			ConnectServer::account_idempotency_key( 'shop.example.com', $before ),
+			ConnectServer::account_idempotency_key( 'shop.example.com', $after )
+		);
+	}
+
+	/**
+	 * Two sites never share a key, whatever their parameters.
+	 */
+	public function test_two_sites_never_share_a_key(): void {
+		$args = array( 'country' => 'US' );
+
+		$this->assertNotSame(
+			ConnectServer::account_idempotency_key( 'one.example.com', $args ),
+			ConnectServer::account_idempotency_key( 'two.example.com', $args )
+		);
+	}
 }

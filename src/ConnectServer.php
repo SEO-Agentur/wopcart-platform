@@ -276,14 +276,14 @@ final class ConnectServer implements Bootable {
 		$reissue = null !== $existing && 'active' === (string) $existing['status'] && self::is_account_id( (string) $existing['account_id'] );
 
 		if ( '' === (string) $site['account_id'] ) {
+			$args = self::account_args( $site_url, $key, $country, is_email( $email ) ? $email : '', $business );
+
 			$account = self::stripe(
 				'POST',
 				'accounts',
-				self::account_args( $site_url, $key, $country, is_email( $email ) ? $email : '', $business ),
+				$args,
 				'',
-				// A retry after a timeout returns the account Stripe already created
-				// rather than a second one.
-				'wopcart_account_' . hash( 'sha256', $key )
+				self::account_idempotency_key( $key, $args )
 			);
 
 			$account_id = (string) ( $account['body']['id'] ?? '' );
@@ -873,6 +873,36 @@ final class ConnectServer implements Bootable {
 		}
 
 		return $args;
+	}
+
+	/**
+	 * Idempotency key for creating this site's connected account.
+	 *
+	 * Two things have to be true at once. A retry after a timeout must return the
+	 * account Stripe already created rather than a second one, so identical
+	 * parameters must produce the same key. And a retry after Stripe *rejected* the
+	 * parameters must be allowed to go through, so different parameters must produce
+	 * a different key — Stripe stores the outcome of the first request under a key,
+	 * refusals included, and answers any later request carrying that key with
+	 * "keys for idempotent requests can only be used with the same parameters they
+	 * were first used with" for 24 hours.
+	 *
+	 * The key used to hash the site alone, which made those 24 hours unavoidable:
+	 * after the Express-dashboard refusal was fixed, every retry from that site was
+	 * met with the stored refusal instead of a new attempt. Hashing the parameters
+	 * as well costs nothing and ends that class of lockout.
+	 *
+	 * The one case it trades away: a creation whose response was lost *and* whose
+	 * parameters the merchant then changed would create a second account. That needs
+	 * both halves, and the row's empty account_id is what lets the retry in at all.
+	 *
+	 * @param string              $key  Site key.
+	 * @param array<string,mixed> $args Parameters for POST /v1/accounts.
+	 *
+	 * @return string
+	 */
+	public static function account_idempotency_key( string $key, array $args ): string {
+		return 'wopcart_account_' . hash( 'sha256', $key . '|' . (string) wp_json_encode( $args ) );
 	}
 
 	/**
