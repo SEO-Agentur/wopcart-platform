@@ -133,3 +133,20 @@ Coding standards the same way:
 cd wopcart-platform
 ../digital-cart/vendor/bin/phpcs
 ```
+
+## Changelog
+
+### 1.0.1
+
+* **Fixed: no store could ever be connected.** New accounts were created with
+  `controller[stripe_dashboard][type]=express` while the fees stayed with the
+  merchant and the losses with Stripe. Stripe refuses that combination — *"your
+  platform must collect fees and be liable for negative balances or refunds and
+  chargebacks"* — so account creation failed on every attempt. The dashboard type
+  is now `full`: the merchant keeps their own Stripe Dashboard and pays Stripe's
+  processing fees, Stripe carries the losses, and onboarding still runs through
+  our hosted account link. Pinned by `ConnectAccountControllerTest`.
+* **Fixed: the plan route would have fatalled on core 1.4.** `Server.php` imported
+  `WopCart\Platform\PlanVerdict`, a class core deleted in 1.4.0. The two codes it
+  used are part of the wire protocol older sites speak, so they are written out
+  here instead.

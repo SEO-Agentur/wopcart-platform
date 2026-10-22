@@ -14,7 +14,6 @@ declare(strict_types=1);
 namespace WopCartPlatform\Tests\Unit;
 
 use WopCart\Licensing\License;
-use WopCart\Platform\PlanVerdict;
 use WopCartPlatform\Server;
 use PHPUnit\Framework\TestCase;
 
@@ -25,7 +24,6 @@ require_once __DIR__ . '/PlatformServerFakeDb.php';
  * Plan server lookup parity.
  *
  * @covers \WopCartPlatform\Server
- * @covers \WopCart\Platform\PlanVerdict
  */
 final class PlatformServerTest extends TestCase {
 
@@ -102,12 +100,12 @@ final class PlatformServerTest extends TestCase {
 			)
 		);
 
+		$payload = $this->call_private( 'success', $license, 'https://shop.example.com' );
+
 		$this->assertNull( $this->call_private( 'refusal', $license ) );
 		$this->assertNull( $this->call_private( 'seats', $license )['expires_at'] );
-		$this->assertSame(
-			PlanVerdict::VALID,
-			PlanVerdict::classify( $this->call_private( 'success', $license, 'https://shop.example.com' ) )
-		);
+		$this->assertTrue( $payload['valid'] );
+		$this->assertArrayNotHasKey( 'error', $payload );
 	}
 
 	/**
@@ -140,16 +138,19 @@ final class PlatformServerTest extends TestCase {
 
 	/**
 	 * A contended seat lock is an outage to the client, never a refusal.
+	 *
+	 * Checked on this side of the wire now: core deleted the class that used to
+	 * classify the answer, so what can still be pinned here is the status this
+	 * server sends. 503 is what makes a client treat it as an outage and keep its
+	 * plan; a 200 would read as a verdict and demote a paying store.
 	 */
-	public function test_busy_is_not_a_refusal(): void {
-		$this->assertSame(
-			PlanVerdict::UNREACHABLE,
-			PlanVerdict::classify(
-				array(
-					'valid' => false,
-					'error' => PlanVerdict::BUSY,
-				)
-			)
+	public function test_busy_is_sent_as_an_outage_not_a_verdict(): void {
+		$response = ( new \ReflectionMethod( Server::class, 'respond' ) )->invoke(
+			new Server(),
+			array( 'valid' => false, 'error' => 'busy' )
 		);
+
+		$this->assertSame( 503, $response->get_status() );
+		$this->assertSame( '5', $response->get_headers()['Retry-After'] ?? '' );
 	}
 }

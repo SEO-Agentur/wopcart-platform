@@ -878,17 +878,30 @@ final class ConnectServer implements Bootable {
 	/**
 	 * Controller properties for new accounts.
 	 *
-	 * The Express Dashboard, but with Stripe's processing fees paid by the connected
-	 * account. `fees.payer=application` would make the platform pay every direct
-	 * charge's processing and dispute fees, which a 2% application fee does not cover
-	 * (docs.stripe.com/connect/direct-charges-fee-payer-behavior). The legacy
-	 * `type=express` is avoided for the same reason: Stripe advises against direct
-	 * charges on that setting. Losses stay with Stripe, consistent with the merchant
-	 * being merchant of record; a platform that prefers otherwise changes the filter.
+	 * The merchant keeps their own Stripe Dashboard, pays Stripe's processing fees
+	 * out of their own balance, and Stripe carries the losses — which is what being
+	 * merchant of record means, and what a 2% application fee can afford. Moving
+	 * `fees.payer` to `application` would hand the platform every direct charge's
+	 * processing and dispute fees (docs.stripe.com/connect/direct-charges-fee-payer-behavior),
+	 * and `losses.payments=application` would make us liable for negative balances
+	 * and chargebacks on stores we never see.
+	 *
+	 * That combination forces `stripe_dashboard.type=full`. Stripe refuses an Express
+	 * dashboard unless the platform also takes the fees *and* the losses:
+	 *
+	 *   When `stripe_dashboard[type]=express`, your platform must collect fees and
+	 *   be liable for negative balances or refunds and chargebacks.
+	 *
+	 * The code asked for `express` with neither, so account creation failed on every
+	 * attempt and no store was ever connected. `type=none` would satisfy Stripe too,
+	 * but it obliges the platform to build the dashboard and carry the support;
+	 * `full` hands both to Stripe, which is the honest arrangement when the merchant
+	 * owns the account. Onboarding still runs through our hosted account link,
+	 * because `requirement_collection` stays with Stripe.
 	 *
 	 * @return array<string,mixed>
 	 */
-	private static function account_controller(): array {
+	public static function account_controller(): array {
 		/**
 		 * Filter the controller properties used to create connected accounts.
 		 *
@@ -897,9 +910,10 @@ final class ConnectServer implements Bootable {
 		return (array) apply_filters(
 			'wopcart_platform_account_controller',
 			array(
-				'stripe_dashboard' => array( 'type' => 'express' ),
-				'fees'             => array( 'payer' => 'account' ),
-				'losses'           => array( 'payments' => 'stripe' ),
+				'stripe_dashboard'       => array( 'type' => 'full' ),
+				'fees'                   => array( 'payer' => 'account' ),
+				'losses'                 => array( 'payments' => 'stripe' ),
+				'requirement_collection' => 'stripe',
 			)
 		);
 	}

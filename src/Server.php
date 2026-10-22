@@ -14,7 +14,6 @@ use WopCart\Licensing\Api;
 use WopCart\Licensing\License;
 use WopCart\Licensing\LicenseKeys;
 use WopCart\Licensing\LicenseManager;
-use WopCart\Platform\PlanVerdict;
 use WopCart\Support\Logger;
 use WopCart\Support\Util;
 
@@ -39,6 +38,24 @@ use WopCart\Support\Util;
  * callers are rate limited per address and nothing is cacheable.
  */
 final class Server implements Bootable {
+
+	/**
+	 * Verdict codes this server emits, as the clients know them.
+	 *
+	 * Copied rather than imported. They used to come from `WopCart\Platform\PlanVerdict`
+	 * in the core plugin, which core 1.4.0 deleted along with the rest of the plan
+	 * logic — leaving this file referencing a class that no longer exists, so the
+	 * plan route would fatal the moment a site still on 1.3.x called it. The codes
+	 * are part of the wire protocol those sites speak, so they are written out here
+	 * and must not change.
+	 */
+	private const VERDICT_SITE_INACTIVE = 'site_inactive';
+
+	/**
+	 * A contended seat lock. Sent as HTTP 503 so clients read it as an outage.
+	 */
+	private const VERDICT_BUSY = 'busy';
+
 
 	/**
 	 * REST namespace, shared with the licensing API.
@@ -245,7 +262,7 @@ final class Server implements Bootable {
 
 		if ( null === $activation || empty( $activation['is_active'] ) ) {
 			return self::error(
-				PlanVerdict::SITE_INACTIVE,
+				self::VERDICT_SITE_INACTIVE,
 				__( 'This plan key is valid but is not activated for this site.', 'wopcart-platform' ),
 				$license
 			);
@@ -365,7 +382,7 @@ final class Server implements Bootable {
 	 * `valid: false` in a successful response, and treats any HTTP error as an
 	 * outage. Rate limiting and a contended seat lock are the refusals that must
 	 * read as an outage — neither is a verdict on the key. They are sent as HTTP
-	 * errors so that clients released before PlanVerdict knew the `busy` code
+	 * errors so that clients released before the `busy` code existed
 	 * still keep their plan, and the code is also listed as transient there in
 	 * case a proxy rewrites the status.
 	 *
@@ -376,7 +393,7 @@ final class Server implements Bootable {
 	private function respond( array $payload ): \WP_REST_Response {
 		$status = match ( $payload['error'] ?? '' ) {
 			'rate_limited'     => 429,
-			PlanVerdict::BUSY  => 503,
+			self::VERDICT_BUSY => 503,
 			default            => 200,
 		};
 

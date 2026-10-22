@@ -57,6 +57,15 @@ if ( ! class_exists( 'WP_REST_Response' ) ) {
 		}
 
 		/**
+		 * Headers that were set.
+		 *
+		 * @return array<string,string>
+		 */
+		public function get_headers(): array {
+			return $this->headers;
+		}
+
+		/**
 		 * The body.
 		 *
 		 * @return mixed

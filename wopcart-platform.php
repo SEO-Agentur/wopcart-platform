@@ -3,7 +3,7 @@
  * Plugin Name:       WopCart Platform
  * Plugin URI:        https://wopcart.com
  * Description:       The wopcart.com server side of WopCart: plan key verification, Stripe Connect onboarding, the payment proxy and the Connect event relay. Belongs on wopcart.com alone and is never distributed to merchants.
- * Version:           1.0.0
+ * Version:           1.0.1
  * Requires at least: 6.5
  * Requires PHP:      8.2
  * Requires Plugins:  wopcart
@@ -24,7 +24,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-const VERSION  = '1.0.0';
+const VERSION  = '1.0.1';
 const BASENAME = 'wopcart-platform/wopcart-platform.php';
 const FILE     = __FILE__;
 const DIR      = __DIR__;
