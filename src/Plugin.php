@@ -101,11 +101,43 @@ final class Plugin {
 	 * @return string Human-readable reason, already translated.
 	 */
 	public static function problem(): string {
-		if ( ! class_exists( '\WopCart\Plugin' ) ) {
+		return self::problem_for(
+			class_exists( '\WopCart\Plugin' ),
+			// supports() landed in core 1.3.0. On an older core the class is there and
+			// the method is not, so calling it straight would be a fatal error on
+			// every request, admin included — the site would go white the moment this
+			// plugin was activated. method_exists() short-circuits before that, and an
+			// absent helper is simply what "too old" looks like.
+			method_exists( '\WopCart\Plugin', 'supports' ) && \WopCart\Plugin::supports( MIN_CORE ),
+			// The server half used to ship inside WopCart itself. Both halves
+			// registering /plan/* and /platform/connect/* would mean two handlers
+			// racing for the same routes, with whichever registered last quietly
+			// winning. No version expresses this, because the removal and this plugin
+			// are one change, so the question is asked of the class directly.
+			class_exists( '\WopCart\Platform\Server' )
+		);
+	}
+
+	/**
+	 * The reason, given what was found.
+	 *
+	 * Separated from the lookups so every combination can be pinned by the suite.
+	 * The suite runs against a current core checkout, so the one case that matters
+	 * most — a core too old to have the helper this plugin calls — cannot be
+	 * produced by loading classes, only by passing it in.
+	 *
+	 * @param bool $core_loaded    Whether the core plugin class is present.
+	 * @param bool $core_supported Whether core is new enough, per its own helper.
+	 * @param bool $core_serves    Whether core still serves the platform routes.
+	 *
+	 * @return string Human-readable reason, already translated.
+	 */
+	public static function problem_for( bool $core_loaded, bool $core_supported, bool $core_serves ): string {
+		if ( ! $core_loaded ) {
 			return __( 'WopCart Platform needs the WopCart plugin, which is not active on this site.', 'wopcart-platform' );
 		}
 
-		if ( ! \WopCart\Plugin::supports( MIN_CORE ) ) {
+		if ( ! $core_supported ) {
 			return sprintf(
 				/* translators: %s: minimum WopCart version. */
 				__( 'WopCart Platform needs WopCart %s or newer.', 'wopcart-platform' ),
@@ -113,12 +145,7 @@ final class Plugin {
 			);
 		}
 
-		// The server half used to ship inside WopCart itself. Both halves registering
-		// /plan/* and /platform/connect/* would mean two handlers racing for the same
-		// routes, with whichever registered last quietly winning. There is no version
-		// that expresses this, because the removal and this plugin are one change, so
-		// the question is asked of the class directly.
-		if ( class_exists( '\WopCart\Platform\Server' ) ) {
+		if ( $core_serves ) {
 			return __( 'WopCart Platform is standing by: this copy of WopCart still serves the platform routes itself. Update WopCart and these routes move over on the next request.', 'wopcart-platform' );
 		}
 

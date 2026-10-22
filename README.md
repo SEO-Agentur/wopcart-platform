@@ -136,6 +136,19 @@ cd wopcart-platform
 
 ## Changelog
 
+### 1.0.2
+
+* **Fixed: activating this plugin next to an older WopCart took the whole site
+  down.** `Plugin::problem()` called core's `supports()` helper, which only exists
+  from core 1.3.0. On an older core the class is there and the method is not, so
+  the call was a fatal error on every request, wp-admin included — the one place
+  a merchant would go to undo it. wopcart.com was running core 1.2.3 when this
+  plugin was first installed there. The helper is now only called when it exists,
+  and an absent helper reads as "too old", which is what it means.
+* The refusal logic moved into `Plugin::problem_for()`, which takes the three
+  facts as arguments so every combination can be pinned by the suite — including
+  the old-core case, which the suite cannot produce by loading classes.
+
 ### 1.0.1
 
 * **Fixed: no store could ever be connected.** New accounts were created with
