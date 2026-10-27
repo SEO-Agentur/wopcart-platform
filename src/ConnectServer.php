@@ -502,6 +502,11 @@ final class ConnectServer implements Bootable {
 		$clean = ProxyPolicy::authorize( $method, $path, $body, self::host( (string) $site['site_url'] ) );
 
 		if ( is_wp_error( $clean ) ) {
+			// The message names the parameter or the rule that refused it, and the
+			// code alone does not. Without it a merchant's failed checkout leaves
+			// nothing to act on but "something in the body was not allowed", which
+			// is exactly as useful as silence. The refusals never quote a value,
+			// only a field name, so nothing secret reaches the log.
 			Logger::warning(
 				'platform.proxy',
 				'Refused a proxied Stripe request.',
@@ -510,6 +515,7 @@ final class ConnectServer implements Bootable {
 					'method' => $method,
 					'path'   => substr( $path, 0, 120 ),
 					'code'   => $clean->get_error_code(),
+					'reason' => substr( $clean->get_error_message(), 0, 200 ),
 				)
 			);
 
